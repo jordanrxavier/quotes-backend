@@ -19,9 +19,9 @@ const cors = require('cors')
 // ------------------------------------------------------------
 // STEP 1 — Import your database connection and Quote model
 
+const dbConnection = require('./db')
 
-
-
+const Quote = require('./models/quote')
 
 // Importing Quote here registers it with the connection so
 // db.sync() below knows to create the Quotes table.
@@ -51,6 +51,8 @@ app.use(cors())          // allows the React frontend to call this server
 // ------------------------------------------------------------
 app.get('/api/quotes', async (req, res, next) => {
   try {
+    const quotes = await Quote.findAll()
+    res.status(200).json(quotes)
 
   } catch (error) {
     next(error)
@@ -70,27 +72,39 @@ app.get('/api/quotes', async (req, res, next) => {
 // ------------------------------------------------------------
 app.post('/api/quotes', async (req, res, next) => {
   try {
-
+    const { text, author } = req.body
+    const newQuote = await Quote.create({ text, author })
+    res.status(201).json(newQuote)
   } catch (error) {
     next(error)
   }
 })
 
 
-// ------------------------------------------------------------
-// DELETE /api/quotes/:id
-//
-// Find the quote by its id, then remove it.
-//
-// Steps:
-//   1. Get the id for the quote you want to delete
-//   2. Find the quote by primary key using a sequelize method
-//   3. If nothing comes back, send 404
-//   4. Call the instance method that deletes the row
-//   5. Send 204 — no body needed on a successful delete
-// ------------------------------------------------------------
+// // ------------------------------------------------------------
+// // DELETE /api/quotes/:id
+// //
+// // Find the quote by its id, then remove it.
+// //
+// // Steps:
+// //   1. Get the id for the quote you want to delete
+// //   2. Find the quote by primary key using a sequelize method
+// //   3. If nothing comes back, send 404
+// //   4. Call the instance method that deletes the row
+// //   5. Send 204 — no body needed on a successful delete
+// // ------------------------------------------------------------
 app.delete('/api/quotes/:id', async (req, res, next) => {
   try {
+    const id = Number(req.params.id);
+    const quote = await Quote.findByPk(id)
+
+    if (!quote) {
+      return res.sendStatus(404);
+    }
+
+    await quote.destroy()
+
+    res.sendStatus(204);
 
   } catch (error) {
     next(error)
@@ -128,7 +142,7 @@ app.use((error, req, res, next) => {
 async function startApp() {
   // connect to your db here before the express server listens
 
-
+  await dbConnection.sync()
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
 }
 
